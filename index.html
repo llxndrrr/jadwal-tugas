@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tugasku</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Filter blur yang dipakai bersama oleh semua ombak -->
+<svg class="defs" aria-hidden="true">
+  <!-- kabur = tepi ombak hijau yang lembut -->
+  <filter id="kabur" filterUnits="userSpaceOnUse" x="-300" y="-300" width="3000" height="600"><feGaussianBlur stdDeviation="11"/></filter>
+</svg>
+
+<!-- ===================== BAGIAN HIJAU (ATAS) ===================== -->
+<header class="atas">
+  <div class="isi-atas">
+    <div class="baris-atas">
+      <span class="brand"><span class="brand-mark">◐</span>Tugasku</span>
+      <nav class="nav">
+        <button type="button" class="pil on" data-view="tugas">Tugas</button>
+        <button type="button" class="pil" data-view="ulangan">Ulangan</button>
+        <button type="button" class="pil" data-view="jadwal">Jadwal</button>
+      </nav>
+    </div>
+
+    <!-- Status sekarang: sesi apa, istirahat, dsb. Diisi oleh app.js -->
+    <div class="sekarang">
+      <p class="kecil-atas" id="now-kecil"></p>
+      <h1 class="judul-now" id="now-judul"></h1>
+      <p class="sub-now" id="now-sub"></p>
+      <div class="aksi-now" id="now-aksi"></div>
+      <div class="aksi-now" id="now-ulangan"></div>
+      <p class="berikut" id="now-berikut"></p>
+      <div class="strip" id="now-strip"></div>
+    </div>
+  </div>
+</header>
+
+<!-- Ombak atas (hijau → krem): pudar lembut, bergeser pelan ke kiri -->
+<div class="transisi" aria-hidden="true">
+  <div class="gerak"><svg viewBox="0 0 2400 90" preserveAspectRatio="none"><path class="ombak" data-fase="0.4"/></svg></div>
+  <div class="bintik"></div>
+</div>
+
+<!-- ===================== BAGIAN KREM (TENGAH) ===================== -->
+<main class="bawah">
+  <div id="pengingat" class="pengingat" hidden></div>
+
+  <!-- ---------- Tampilan TUGAS ---------- -->
+  <section id="view-tugas">
+    <div class="kepala">
+      <div>
+        <h2>Tugas</h2>
+        <p class="ringkas" id="tugas-ringkas"></p>
+      </div>
+      <button type="button" class="btn" id="btn-tambah">+ Tugas</button>
+    </div>
+
+    <div class="filter" id="filter"></div>
+
+    <div id="grup-lewat" hidden>
+      <h3 class="judul-grup merah">Lewat deadline</h3>
+      <ul class="daftar" id="daftar-lewat"></ul>
+    </div>
+
+    <h3 class="judul-grup" id="judul-belum">Belum selesai</h3>
+    <ul class="daftar" id="daftar-belum"></ul>
+
+    <details id="grup-selesai">
+      <summary id="judul-selesai">Selesai</summary>
+      <ul class="daftar" id="daftar-selesai"></ul>
+    </details>
+  </section>
+
+  <!-- ---------- Tampilan ULANGAN ---------- -->
+  <section id="view-ulangan" hidden>
+    <div class="kepala">
+      <div>
+        <h2>Ulangan</h2>
+        <p class="ringkas" id="ulangan-ringkas"></p>
+      </div>
+      <button type="button" class="btn" id="btn-tambah-ul">+ Ulangan</button>
+    </div>
+
+    <h3 class="judul-grup">Akan datang</h3>
+    <ul class="daftar" id="daftar-ul-datang"></ul>
+
+    <details id="grup-ul-lewat">
+      <summary id="judul-ul-lewat">Sudah lewat</summary>
+      <ul class="daftar" id="daftar-ul-lewat"></ul>
+    </details>
+  </section>
+
+  <!-- ---------- Tampilan JADWAL ---------- -->
+  <section id="view-jadwal" hidden>
+    <div class="kepala">
+      <div>
+        <h2>Jadwal kuliah</h2>
+        <p class="ringkas">Klik kotak sesi untuk mengisi atau mengubahnya. Cukup sekali di awal semester.</p>
+      </div>
+    </div>
+    <div class="grid-wrap"><div class="grid" id="grid-jadwal"></div></div>
+  </section>
+</main>
+
+<!-- Ombak bawah (krem → hijau): bentuk yang sama, dibalik -->
+<div class="transisi balik" aria-hidden="true">
+  <div class="gerak"><svg viewBox="0 0 2400 90" preserveAspectRatio="none"><path class="ombak" data-fase="2.6"/></svg></div>
+  <div class="bintik"></div>
+</div>
+
+<!-- ===================== BAGIAN HIJAU (BAWAH) ===================== -->
+<footer class="kaki">
+  <div class="isi-kaki">
+    <span class="brand"><span class="brand-mark">◐</span>Tugasku</span>
+    <p>Semua data tersimpan otomatis di browser ini. Backup sesekali supaya aman.</p>
+    <div class="backup">
+      <button type="button" class="link" data-backup>Backup</button>
+      <label class="link" tabindex="0">Pulihkan<input type="file" id="file-pulihkan" accept=".json,application/json" hidden></label>
+    </div>
+  </div>
+</footer>
+
+<!-- Saran nama mata kuliah (diambil dari jadwal, tugas & ulangan) -->
+<datalist id="list-matkul"></datalist>
+
+<!-- ===================== DIALOG: TAMBAH / UBAH TUGAS ===================== -->
+<dialog id="dlg-tugas">
+  <form id="form-tugas" autocomplete="off">
+    <h3 id="dlg-tugas-judul">Tugas baru</h3>
+    <label class="field">Nama tugas
+      <input id="t-nama" class="f" maxlength="80" required placeholder="misal: Laporan ERD">
+    </label>
+    <label class="field">Mata kuliah
+      <input id="t-matkul" class="f" list="list-matkul" maxlength="50" placeholder="pilih atau ketik">
+    </label>
+    <div class="dua">
+      <label class="field">Deadline
+        <input id="t-tanggal" class="f" type="date" required>
+      </label>
+      <label class="field">Jam <span class="opsional">(boleh kosong)</span>
+        <input id="t-jam" class="f" type="time">
+      </label>
+    </div>
+    <div class="field">Sumber
+      <div class="seg" id="t-sumber">
+        <button type="button" data-sumber="web">Web kampus</button>
+        <button type="button" data-sumber="dosen">Dari dosen</button>
+      </div>
+    </div>
+    <label class="field">Catatan <span class="opsional">(boleh kosong)</span>
+      <input id="t-catatan" class="f" maxlength="120" placeholder="misal: dikumpulkan lewat e-learning">
+    </label>
+    <div class="aksi-dialog">
+      <button type="button" class="btn-dua" id="t-batal">Batal</button>
+      <button type="submit" class="btn">Simpan</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ===================== DIALOG: TAMBAH / UBAH ULANGAN ===================== -->
+<dialog id="dlg-ulangan">
+  <form id="form-ulangan" autocomplete="off">
+    <h3 id="dlg-ul-judul">Ulangan baru</h3>
+    <div class="field">Jenis
+      <div class="seg" id="u-jenis">
+        <button type="button" data-ul="kuis">Kuis</button>
+        <button type="button" data-ul="uts">UTS</button>
+        <button type="button" data-ul="uas">UAS</button>
+        <button type="button" data-ul="lain">Lainnya</button>
+      </div>
+    </div>
+    <label class="field" id="u-lain-wrap" hidden>Nama ulangan
+      <input id="u-lain" class="f" maxlength="30" placeholder="misal: Praktikum, Ulangan harian">
+    </label>
+    <label class="field">Mata kuliah
+      <input id="u-matkul" class="f" list="list-matkul" maxlength="50" required placeholder="pilih atau ketik">
+    </label>
+    <div class="dua">
+      <label class="field">Tanggal
+        <input id="u-tanggal" class="f" type="date" required>
+      </label>
+      <label class="field">Jam <span class="opsional">(boleh kosong)</span>
+        <input id="u-jam" class="f" type="time">
+      </label>
+    </div>
+    <label class="field">Materi / catatan <span class="opsional">(boleh kosong)</span>
+      <input id="u-materi" class="f" maxlength="120" placeholder="misal: bab 1–5, open book, ruang B204">
+    </label>
+    <label class="field" id="u-nilai-wrap" hidden>Nilai <span class="opsional">(boleh kosong)</span>
+      <input id="u-nilai" class="f" maxlength="10" placeholder="misal: 85 atau A-">
+    </label>
+    <div class="aksi-dialog">
+      <button type="button" class="btn-dua" id="u-batal">Batal</button>
+      <button type="submit" class="btn">Simpan</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ===================== DIALOG: ISI SESI JADWAL ===================== -->
+<dialog id="dlg-sesi">
+  <form id="form-sesi" autocomplete="off">
+    <h3 id="s-judul"></h3>
+    <label class="field">Mata kuliah
+      <input id="s-matkul" class="f" list="list-matkul" maxlength="50" placeholder="misal: Basis Data">
+    </label>
+    <div class="field">Jenis sesi
+      <div class="seg" id="s-jenis">
+        <button type="button" data-jenis="dosen">Diajar dosen</button>
+        <button type="button" data-jenis="self">Self learning</button>
+      </div>
+    </div>
+    <label class="field" id="s-dosen-wrap">Nama dosen <span class="opsional">(boleh kosong)</span>
+      <input id="s-dosen" class="f" maxlength="50" placeholder="misal: Pak Hendra">
+    </label>
+    <p class="error" id="s-error" hidden></p>
+    <div class="s-tugas" id="s-tugas" hidden></div>
+    <div class="aksi-dialog">
+      <button type="button" class="link" id="s-kosongkan">Kosongkan sesi</button>
+      <span class="spasi"></span>
+      <button type="button" class="btn-dua" id="s-batal">Batal</button>
+      <button type="submit" class="btn">Simpan</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>

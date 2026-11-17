@@ -202,6 +202,21 @@ dialog h3 { font-size: 20px; font-weight: 800; margin-bottom: 16px; letter-spaci
 .hapus-sesi:hover { background: var(--merah); border-color: var(--merah); color: #fff; }
 .hapus-sesi[hidden] { display: block; visibility: hidden; }
 .btn-kecil { padding: 7px 14px; font-size: 13px; }
+/* Akun & cloud */
+.akun-chip { margin-left: auto; white-space: nowrap; }
+.akun-chip.masuk { border-color: rgba(243, 236, 220, .55); }
+.akun-chip.masuk[data-status="gagal"] { border-color: #f0a35e; }
+.teks-dialog { font-size: 14.5px; line-height: 1.55; margin-bottom: 12px; }
+.teks-dialog p + p { margin-top: 8px; }
+.teks-dialog.kecil { font-size: 13px; color: var(--redup); }
+.poin-dialog { font-size: 13.5px; line-height: 1.5; margin: 0 0 16px 18px; color: var(--tinta); }
+.poin-dialog li + li { margin-top: 6px; }
+.akun-status { font-size: 13.5px; font-weight: 700; margin-bottom: 12px; }
+.akun-status::before { content: '●'; margin-right: 6px; color: var(--redup); }
+.akun-status.ok::before { color: #2f9e5b; }
+.akun-status.proses::before { color: #d9a53a; }
+.akun-status.gagal::before { color: var(--merah); }
+.aksi-dialog.bungkus { flex-wrap: wrap; justify-content: flex-end; }
 #dlg-jam { width: min(500px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; }
 @media (max-width: 640px) {
   #dlg-jam { padding: 22px 18px; }

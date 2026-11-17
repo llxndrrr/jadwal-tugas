@@ -109,9 +109,14 @@ function muat() {
     return dataKosong();
   }
 }
-function simpan() {
+function simpanLokal() {
   try { localStorage.setItem(KUNCI_SIMPAN, JSON.stringify(data)); }
   catch (e) { alert('Gagal menyimpan: ' + e.message); }
+}
+// Setiap perubahan dari pengguna: simpan di browser, lalu beri tahu cloud.js (kalau sedang masuk akun)
+function simpan() {
+  simpanLokal();
+  if (typeof window.saatSimpan === 'function') window.saatSimpan();
 }
 function idBaru() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
@@ -291,7 +296,7 @@ function renderSemua() {
 }
 
 function renderView() {
-  document.querySelectorAll('.pil').forEach(b => b.classList.toggle('on', b.dataset.view === ui.view));
+  document.querySelectorAll('.pil[data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === ui.view));
   $('view-tugas').hidden = ui.view !== 'tugas';
   $('view-jadwal').hidden = ui.view !== 'jadwal';
   $('view-ulangan').hidden = ui.view !== 'ulangan';
@@ -567,7 +572,7 @@ $('now-ulangan').addEventListener('click', e => {
 });
 
 // Pindah tampilan Tugas / Jadwal
-document.querySelectorAll('.pil').forEach(b => b.addEventListener('click', () => { ui.view = b.dataset.view; renderSemua(); }));
+document.querySelectorAll('.pil[data-view]').forEach(b => b.addEventListener('click', () => { ui.view = b.dataset.view; renderSemua(); }));
 
 /* =========================================================
    8b. AKSI: ULANGAN
@@ -885,10 +890,27 @@ function pathOmbak(fase) {
 document.querySelectorAll('.ombak').forEach(p => p.setAttribute('d', pathOmbak(Number(p.dataset.fase))));
 
 /* =========================================================
-   12. MULAI
+   12. PENGHUBUNG KE cloud.js (sinkron ke akun Google, opsional)
+   ========================================================= */
+window.Tugasku = {
+  ambil: () => data,
+  adaIsi: () => data.tugas.length > 0 || data.ulangan.length > 0 || !jadwalKosong(),
+  ringkas: d => {
+    const r = rapikan(d);
+    let sesi = 0;
+    for (const h of r.hari) sesi += r.jadwal[h].filter(Boolean).length;
+    return `${r.tugas.length} tugas, ${r.ulangan.length} ulangan, ${sesi} sesi jadwal`;
+  },
+  // Ganti data dengan versi dari cloud (tidak memicu unggah ulang)
+  ganti(d) { data = rapikan(d); hitungSesi(); simpanLokal(); renderSemua(); },
+  hapusLokal() { data = dataKosong(); hitungSesi(); simpanLokal(); renderSemua(); },
+};
+
+/* =========================================================
+   13. MULAI
    ========================================================= */
 renderSemua();
 // Perbarui status "sekarang" & label deadline tiap 30 detik (kecuali sedang mengisi form)
 setInterval(() => {
-  if (!$('dlg-tugas').open && !$('dlg-sesi').open && !$('dlg-ulangan').open && !$('dlg-jam').open) renderSemua();
+  if (!document.querySelector('dialog[open]')) renderSemua();
 }, 30000);

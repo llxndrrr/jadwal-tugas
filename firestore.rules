@@ -1,0 +1,32 @@
+rules_version = '2';
+
+// Aturan keamanan database Tugasku (Firestore).
+// Prinsip: setiap akun hanya boleh membaca & mengubah dokumennya sendiri,
+// dan bentuk datanya dibatasi. Selain itu, semua akses ditolak.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /pengguna/{uid} {
+      function pemilik() {
+        return request.auth != null && request.auth.uid == uid;
+      }
+      function bentukBenar() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['data', 'diubah', 'versi'])
+          && d.keys().hasAll(['data', 'diubah', 'versi'])
+          && d.data is string && d.data.size() <= 500000
+          && d.diubah is int && d.versi == 1;
+      }
+
+      allow get: if pemilik();
+      allow create, update: if pemilik() && bentukBenar();
+      allow delete: if pemilik();
+      // "list" (melihat daftar semua dokumen) sengaja tidak diizinkan
+    }
+
+    // Semua koleksi lain: tertutup
+    match /{dokumen=**} {
+      allow read, write: if false;
+    }
+  }
+}

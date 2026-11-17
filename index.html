@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Aturan keamanan: halaman hanya boleh memuat kode dari sumber yang disebut di sini -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://apis.google.com; frame-src https://tugasku-21eb7.firebaseapp.com; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>Tugasku</title>
   <link rel="icon" href="data:,">
@@ -31,6 +31,8 @@
         <button type="button" class="pil" data-view="ulangan">Ulangan</button>
         <button type="button" class="pil" data-view="jadwal">Jadwal</button>
       </nav>
+      <!-- Tombol akun: dimunculkan oleh cloud.js (tetap tersembunyi kalau Firebase gagal dimuat) -->
+      <button type="button" class="pil akun-chip" id="btn-akun" hidden>Masuk</button>
     </div>
 
     <!-- Status sekarang: sesi apa, istirahat, dsb. Diisi oleh app.js -->
@@ -124,7 +126,7 @@
 <footer class="kaki">
   <div class="isi-kaki">
     <span class="brand"><span class="brand-mark">◐</span>Tugasku</span>
-    <p>Semua data tersimpan otomatis di browser ini. Backup sesekali supaya aman.</p>
+    <p id="kaki-teks">Semua data tersimpan otomatis di browser ini. Backup sesekali supaya aman.</p>
     <div class="backup">
       <button type="button" class="link" data-backup>Backup</button>
       <label class="link" tabindex="0">Pulihkan<input type="file" id="file-pulihkan" accept=".json,application/json" hidden></label>
@@ -255,6 +257,44 @@
   </form>
 </dialog>
 
+<!-- ===================== DIALOG: AKUN & CLOUD ===================== -->
+<dialog id="dlg-akun">
+  <div id="akun-luar">
+    <h3>Simpan ke cloud</h3>
+    <p class="teks-dialog">Masuk dengan akun Google supaya tugas, ulangan, dan jadwalmu tersimpan online. Datanya tetap aman walau riwayat browser terhapus, dan bisa dibuka di HP maupun laptop.</p>
+    <ul class="poin-dialog">
+      <li><b>Opsional.</b> Tanpa masuk pun aplikasi tetap bisa dipakai, datanya hanya tersimpan di browser ini.</li>
+      <li>Data di cloud <b>hanya bisa dibaca oleh akunmu sendiri</b>.</li>
+      <li>Yang disimpan hanya isi aplikasi ini dan ID akunmu.</li>
+    </ul>
+    <p class="error" id="akun-error" hidden></p>
+    <div class="aksi-dialog">
+      <span class="spasi"></span>
+      <button type="button" class="btn-dua" id="akun-nanti">Nanti saja</button>
+      <button type="button" class="btn" id="akun-masuk">Masuk dengan Google</button>
+    </div>
+  </div>
+  <div id="akun-dalam" hidden>
+    <h3>Akun</h3>
+    <p class="teks-dialog">Masuk sebagai <b id="akun-email"></b></p>
+    <p class="akun-status" id="akun-status"></p>
+    <p class="teks-dialog kecil">Setiap perubahan otomatis tersimpan ke cloud. Buka Tugasku di perangkat lain dan masuk dengan akun yang sama untuk melihat datamu.</p>
+    <div class="aksi-dialog">
+      <button type="button" class="link" id="akun-keluar">Keluar</button>
+      <span class="spasi"></span>
+      <button type="button" class="btn" id="akun-tutup">Tutup</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Dialog pilihan (dipakai cloud.js) -->
+<dialog id="dlg-pilih">
+  <h3 id="pilih-judul"></h3>
+  <div class="teks-dialog" id="pilih-teks"></div>
+  <div class="aksi-dialog bungkus" id="pilih-tombol"></div>
+</dialog>
+
 <script src="app.js"></script>
+<script type="module" src="cloud.js"></script>
 </body>
 </html>

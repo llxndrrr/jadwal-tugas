@@ -34,4 +34,4 @@ Selesai. Nggak perlu install apa-apa.
 
 ---
 
-Dibuat oleh [Abraham Alex](https://github.com/llxndrrr) bersama Claude.
+Dibuat oleh [Abraham Alex](https://github.com/llxndrrr).

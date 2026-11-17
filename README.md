@@ -19,7 +19,7 @@ Aplikasi web untuk mengatur tugas, ulangan, dan jadwal belajar mingguan. Aplikas
 
 Tanpa masuk akun, semua data tersimpan di **browser kamu sendiri** (`localStorage`) dan nggak dikirim ke mana pun.
 
-Kalau kamu memilih **masuk dengan Google**, isi aplikasi juga disimpan di Firebase Firestore, satu dokumen per akun. [Aturan keamanannya](firestore.rules) memastikan setiap akun **hanya bisa membaca dan mengubah datanya sendiri**. Aturan ini sudah dites di Firebase Emulator dengan 20 skenario, termasuk percobaan membaca data akun lain dan menulis tanpa login. Saat keluar, kamu bisa memilih menghapus data dari perangkat itu.
+Kalau kamu memilih **masuk dengan Google**, isi aplikasi juga disimpan di Firebase Firestore, satu dokumen per akun. [Aturan keamanannya](firestore.rules) memastikan setiap akun **hanya bisa membaca dan mengubah datanya sendiri**. Aturan ini sudah dites di Firebase Emulator dengan 33 skenario (bersama Catatan Uang), termasuk percobaan membaca data akun lain dan menulis tanpa login. Saat keluar, kamu bisa memilih menghapus data dari perangkat itu.
 
 ## Teknologi
 

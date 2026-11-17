@@ -7,36 +7,56 @@ const KUNCI_SIMPAN = 'jadwalTugas.v1';
 const HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const BULAN_PENDEK = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
-const SESI = [
-  { no: 1, mulai: '08:00', selesai: '09:30' },
-  { no: 2, mulai: '10:00', selesai: '11:30' },
-  { no: 3, mulai: '13:00', selesai: '14:30' },
-  { no: 4, mulai: '15:00', selesai: '16:30' },
+// Jam sesi & hari kuliah BAWAAN. Pengguna bisa mengubahnya lewat "Atur jam & hari"
+// (disimpan di data.sesi dan data.hari, ikut ter-backup).
+const SESI_AWAL = [
+  { mulai: '08:00', selesai: '09:30' },
+  { mulai: '10:00', selesai: '11:30' },
+  { mulai: '13:00', selesai: '14:30' },
+  { mulai: '15:00', selesai: '16:30' },
 ];
-// "setelah" = jeda ini datang setelah sesi ke berapa (0 = sesi 1)
-const JEDA = [
-  { nama: 'Istirahat', mulai: '09:30', selesai: '10:00', setelah: 0 },
-  { nama: 'Istirahat', mulai: '11:30', selesai: '13:00', setelah: 1 },
-  { nama: 'Istirahat', mulai: '14:30', selesai: '15:00', setelah: 2 },
-  { nama: 'Waktu bebas', mulai: '16:30', selesai: '17:00', setelah: 3 },
-];
+const HARI_AWAL = [1, 2, 3, 4, 5];            // Senin–Jumat
+const URUT_HARI = [1, 2, 3, 4, 5, 6, 0];      // urutan tampil: Senin ... Minggu
+const MAKS_SESI = 8;
+const POLA_JAM = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+// Diisi ulang oleh hitungSesi() setiap kali pengaturan jam berubah.
+// JEDA = celah di antara dua sesi; "setelah" = jeda ini datang setelah sesi ke berapa (0 = sesi 1)
+let SESI = [];
+let JEDA = [];
 
 /* =========================================================
    2. MENYIMPAN & MEMUAT DATA (localStorage)
    ========================================================= */
-function dataKosong() {
+function dataKosong(nSesi = SESI_AWAL.length) {
   const jadwal = {};
-  for (let h = 1; h <= 5; h++) jadwal[h] = [null, null, null, null];   // 1 = Senin ... 5 = Jumat
-  return { versi: 1, jadwal, tugas: [], ulangan: [], terakhirBackup: null };
+  for (let h = 0; h <= 6; h++) jadwal[h] = Array(nSesi).fill(null);   // 0 = Minggu, 1 = Senin ... 6 = Sabtu
+  return { versi: 2, sesi: SESI_AWAL.map(s => ({ ...s })), hari: [...HARI_AWAL], jadwal, tugas: [], ulangan: [], terakhirBackup: null };
+}
+
+// Jam sesi: harus "HH:MM", mulai < selesai, urut, tidak bertabrakan. Kalau rusak -> pakai bawaan.
+function rapikanSesi(daftar) {
+  if (!Array.isArray(daftar)) return null;
+  const s = daftar
+    .filter(x => x && POLA_JAM.test(x.mulai) && POLA_JAM.test(x.selesai) && x.mulai < x.selesai)
+    .map(x => ({ mulai: x.mulai, selesai: x.selesai }))
+    .slice(0, MAKS_SESI);
+  if (!s.length || s.length !== daftar.length) return null;
+  for (let i = 1; i < s.length; i++) if (s[i].mulai < s[i - 1].selesai) return null;
+  return s;
 }
 
 // Memastikan bentuk data benar (dari localStorage maupun file backup)
 function rapikan(d) {
-  const k = dataKosong();
+  const sesi = rapikanSesi(d && d.sesi) || SESI_AWAL.map(s => ({ ...s }));
+  const k = dataKosong(sesi.length);
+  k.sesi = sesi;
+  const hari = (d && Array.isArray(d.hari) ? d.hari : []).map(Number).filter(h => Number.isInteger(h) && h >= 0 && h <= 6);
+  if (hari.length) k.hari = URUT_HARI.filter(h => hari.includes(h));
   if (d && d.jadwal && typeof d.jadwal === 'object') {
-    for (let h = 1; h <= 5; h++) {
+    for (let h = 0; h <= 6; h++) {
       const baris = Array.isArray(d.jadwal[h]) ? d.jadwal[h] : [];
-      k.jadwal[h] = [0, 1, 2, 3].map(i => {
+      k.jadwal[h] = sesi.map((_, i) => {
         const c = baris[i];
         if (!c) return null;
         const matkul = String(c.matkul || '').trim().slice(0, 50);
@@ -97,6 +117,15 @@ function idBaru() { return Date.now().toString(36) + Math.random().toString(36).
 
 let data = muat();
 
+function hitungSesi() {
+  SESI = data.sesi.map((s, i) => ({ no: i + 1, mulai: s.mulai, selesai: s.selesai }));
+  JEDA = [];
+  for (let i = 0; i < SESI.length - 1; i++) {
+    if (SESI[i].selesai < SESI[i + 1].mulai) JEDA.push({ nama: 'Istirahat', mulai: SESI[i].selesai, selesai: SESI[i + 1].mulai, setelah: i });
+  }
+}
+hitungSesi();
+
 /* =========================================================
    3. ALAT BANTU
    ========================================================= */
@@ -126,7 +155,7 @@ const tag = teks => `<span class="tag">${esc(teks)}</span>`;
 // Daftar semua nama mata kuliah (dari jadwal + tugas), untuk saran & filter
 function daftarMatkul() {
   const set = new Set();
-  for (let h = 1; h <= 5; h++) for (const c of data.jadwal[h]) if (c && c.matkul) set.add(c.matkul);
+  for (let h = 0; h <= 6; h++) for (const c of data.jadwal[h]) if (c && c.matkul) set.add(c.matkul);
   for (const t of data.tugas) if (t.matkul) set.add(t.matkul);
   for (const u of data.ulangan) set.add(u.matkul);
   return [...set].sort((a, b) => a.localeCompare(b, 'id'));
@@ -170,7 +199,12 @@ const urutUlangan = (a, b) => (a.tanggal + (a.jam || '99')).localeCompare(b.tang
 /* =========================================================
    5. STATUS "SEKARANG" (bagian hijau)
    ========================================================= */
-const hariKuliahBerikut = h => (h >= 5 || h === 0) ? 1 : h + 1;     // Jumat/Sabtu/Minggu -> Senin
+// Hari kuliah berikutnya setelah hari h (melompati hari libur)
+function hariKuliahBerikut(h) {
+  for (let n = 1; n <= 7; n++) { const x = (h + n) % 7; if (data.hari.includes(x)) return x; }
+  return h;
+}
+const jadwalKosong = () => data.hari.every(h => data.jadwal[h].every(c => !c));
 
 function teksSesi(hari, i) {
   const s = SESI[i], c = data.jadwal[hari][i];
@@ -185,14 +219,20 @@ function hitungStatus(d) {
   const m = d.getHours() * 60 + d.getMinutes();
   const besok = (hari + 1) % 7;
   const nb = hariKuliahBerikut(hari);
-  const labelNb = nb === besok ? 'Besok' : HARI[nb];
+  const labelNb = nb === besok ? 'Besok' : nb === hari ? `${HARI[nb]} depan` : HARI[nb];
   const berikutHariLain = `${labelNb} → ${teksSesi(nb, 0)}`;
 
-  if (hari === 0 || hari === 6) {
-    return { kecil: HARI[hari], judul: 'Akhir pekan', sub: 'Tidak ada kuliah hari ini.', berikut: `Berikutnya: ${berikutHariLain}`, aktif: null };
+  // Pengguna baru: jadwal belum diisi sama sekali -> ajak mengatur dulu
+  if (jadwalKosong()) {
+    return { kecil: 'Mulai dari sini', judul: 'Jadwalmu belum diisi',
+      sub: 'Atur jam kuliahmu dan isi mata kuliahnya. Setelah itu bagian ini otomatis menampilkan sesi yang sedang berjalan.',
+      berikut: '', aktif: null, kosong: true };
+  }
+  if (!data.hari.includes(hari)) {
+    return { kecil: HARI[hari], judul: (hari === 0 || hari === 6) ? 'Akhir pekan' : 'Hari libur', sub: 'Tidak ada kuliah hari ini.', berikut: `Berikutnya: ${berikutHariLain}`, aktif: null };
   }
   if (m < menit(SESI[0].mulai)) {
-    return { kecil: `${HARI[hari]} · belum mulai`, judul: 'Kuliah mulai 08.00',
+    return { kecil: `${HARI[hari]} · belum mulai`, judul: `Kuliah mulai ${jam(SESI[0].mulai)}`,
       sub: `${durasi(menit(SESI[0].mulai) - m)} lagi`, berikut: `Pertama: ${teksSesi(hari, 0)}`, aktif: null };
   }
   for (let i = 0; i < SESI.length; i++) {
@@ -204,17 +244,17 @@ function hitungStatus(d) {
       if (!c) sub = `Belum diisi di jadwal · ${sisa}`;
       else if (c.jenis === 'self') sub = `${tag('self learning')} · ${sisa}`;
       else sub = `${esc(c.dosen || 'Dosen')}${tag('dosen')} · ${sisa}`;
-      const j = JEDA[i];
-      const berikut = i < 3
-        ? `Berikutnya: istirahat ${jam(j.mulai)} → ${teksSesi(hari, i + 1)}`
-        : `Berikutnya: waktu bebas ${jam(j.mulai)}–${jam(j.selesai)}`;
+      const j = JEDA.find(x => x.setelah === i);
+      const berikut = i < SESI.length - 1
+        ? (j ? `Berikutnya: istirahat ${jam(j.mulai)} → ${teksSesi(hari, i + 1)}` : `Berikutnya: ${teksSesi(hari, i + 1)}`)
+        : `Berikutnya: selesai ${jam(s.selesai)} · ${berikutHariLain}`;
       return { kecil: `Sekarang · Sesi ${s.no} · ${jam(s.mulai)}–${jam(s.selesai)}`,
         judul: c ? namaSel(c) : 'Sesi kosong', sub, berikut, aktif: { hari, i } };
     }
   }
   for (const j of JEDA) {
     if (m >= menit(j.mulai) && m < menit(j.selesai)) {
-      const berikut = j.setelah < 3 ? `Berikutnya: ${teksSesi(hari, j.setelah + 1)}` : `Berikutnya: ${berikutHariLain}`;
+      const berikut = `Berikutnya: ${teksSesi(hari, j.setelah + 1)}`;
       return { kecil: `${HARI[hari]} · ${j.nama} ${jam(j.mulai)}–${jam(j.selesai)}`,
         judul: j.nama, sub: `${durasi(menit(j.selesai) - m)} lagi`, berikut, aktif: null };
     }
@@ -267,7 +307,9 @@ function renderSekarang() {
 
   // Tombol cepat untuk mata kuliah yang sedang berjalan
   const c = s.aktif && data.jadwal[s.aktif.hari][s.aktif.i];
-  if (c && c.matkul) {
+  if (s.kosong) {
+    $('now-aksi').innerHTML = '<button type="button" class="mini-btn utama" data-atur-jadwal>Atur jadwalku</button>';
+  } else if (c && c.matkul) {
     const n = tugasBelum(c.matkul);
     $('now-aksi').innerHTML =
       `<button type="button" class="mini-btn" data-lihat="${esc(c.matkul)}">Tugas ${esc(c.matkul)} (${n})</button>` +
@@ -286,10 +328,11 @@ function renderSekarang() {
       return `<button type="button" class="mini-btn ${l.kelas === 'mepet' ? 'mepet' : ''}" data-ke-ulangan>Ulangan: ${esc(namaUlangan(u))} · ${esc(l.teks)}</button>`;
     }).join('');
 
-  // Strip 4 sesi hari ini
+  // Strip sesi hari ini
   const hari = d.getDay();
-  if (hari >= 1 && hari <= 5) {
+  if (!s.kosong && data.hari.includes(hari)) {
     const m = d.getHours() * 60 + d.getMinutes();
+    $('now-strip').style.setProperty('--n', SESI.length <= 6 ? SESI.length : 4);   // 5–6 sesi muat 1 baris, 7–8 jadi 2 baris
     $('now-strip').innerHTML = SESI.map((sesi, i) => {
       const cell = data.jadwal[hari][i];
       const kelas = m >= menit(sesi.selesai) ? 'lewat' : (m >= menit(sesi.mulai) ? 'aktif' : '');
@@ -399,12 +442,13 @@ function renderJadwal() {
   const d = new Date();
   const hariIni = d.getDay();
   const status = hitungStatus(d);
+  const daftarHari = data.hari;
   let html = '<div></div>';
-  for (let h = 1; h <= 5; h++) html += `<div class="g-hari ${h === hariIni ? 'hari-ini' : ''}">${HARI[h]}</div>`;
+  for (const h of daftarHari) html += `<div class="g-hari ${h === hariIni ? 'hari-ini' : ''}">${HARI[h]}</div>`;
 
   SESI.forEach((s, i) => {
     html += `<div class="g-jam"><b>Sesi ${s.no}</b>${jam(s.mulai)}<br>${jam(s.selesai)}</div>`;
-    for (let h = 1; h <= 5; h++) {
+    for (const h of daftarHari) {
       const c = data.jadwal[h][i];
       const kelas = [h === hariIni ? 'hari-ini' : '', status.aktif && status.aktif.hari === h && status.aktif.i === i ? 'sekarang' : ''].join(' ');
       if (!c) {
@@ -419,10 +463,13 @@ function renderJadwal() {
         </button>`;
       }
     }
-    const j = JEDA[i];
-    html += `<div class="g-jeda">${j.nama} ${jam(j.mulai)}–${jam(j.selesai)}</div>`;
+    const j = JEDA.find(x => x.setelah === i);
+    if (j) html += `<div class="g-jeda">${j.nama} ${jam(j.mulai)}–${jam(j.selesai)}</div>`;
   });
-  $('grid-jadwal').innerHTML = html;
+  const grid = $('grid-jadwal');
+  grid.style.gridTemplateColumns = `86px repeat(${daftarHari.length}, minmax(120px, 1fr))`;
+  grid.style.minWidth = `${86 + daftarHari.length * 128}px`;
+  grid.innerHTML = html;
 }
 
 function renderPengingat() {
@@ -541,7 +588,7 @@ function saranJam() {
   const [y, m, d] = $('u-tanggal').value.split('-').map(Number);
   const hari = new Date(y, m - 1, d).getDay();
   const matkul = $('u-matkul').value.trim().toLowerCase();
-  if (hari < 1 || hari > 5 || !matkul) return;
+  if (!data.hari.includes(hari) || !matkul) return;
   const i = data.jadwal[hari].findIndex(c => c && c.matkul.toLowerCase() === matkul);
   if (i >= 0) $('u-jam').value = SESI[i].mulai;
 }
@@ -674,6 +721,115 @@ $('s-tugas').addEventListener('click', e => {
   if (tambah) bukaFormTugas(null, tambah.dataset.tambah);
 });
 
+/* ---------- Atur jam sesi & hari kuliah ---------- */
+const tambahMenit = (s, n) => { const t = Math.min(menit(s) + n, 23 * 60 + 59); return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; };
+
+function barisSesi(s, asal) {
+  const div = document.createElement('div');
+  div.className = 'baris-sesi';
+  div.dataset.asal = asal;                 // index sesi lama ('' = sesi baru), supaya isi jadwal ikut pindah
+  div.innerHTML = `<span class="no-sesi"></span>
+    <input type="time" class="f j-mulai" required aria-label="Jam mulai">
+    <span class="sampai">–</span>
+    <input type="time" class="f j-selesai" required aria-label="Jam selesai">
+    <button type="button" class="hapus-sesi" title="Hapus sesi">×</button>`;
+  div.querySelector('.j-mulai').value = s.mulai;
+  div.querySelector('.j-selesai').value = s.selesai;
+  return div;
+}
+function nomoriSesi() {
+  const baris = [...$('j-sesi').children];
+  baris.forEach((b, i) => {
+    b.querySelector('.no-sesi').textContent = `Sesi ${i + 1}`;
+    b.querySelector('.hapus-sesi').setAttribute('aria-label', `Hapus sesi ${i + 1}`);
+    b.querySelector('.hapus-sesi').hidden = baris.length === 1;
+  });
+  $('j-tambah').hidden = baris.length >= MAKS_SESI;
+}
+function isiFormJam(sesi, hari, pakaiAsal) {
+  $('j-sesi').replaceChildren(...sesi.map((s, i) => barisSesi(s, pakaiAsal ? i : '')));
+  nomoriSesi();
+  $('j-hari').innerHTML = URUT_HARI.map(h =>
+    `<button type="button" class="chip-hari ${hari.includes(h) ? 'on' : ''}" data-h="${h}" aria-pressed="${hari.includes(h)}">${HARI[h].slice(0, 3)}</button>`).join('');
+  $('j-error').hidden = true;
+}
+function bukaFormJam() {
+  isiFormJam(data.sesi, data.hari, true);
+  $('dlg-jam').showModal();
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('[data-atur-jadwal]')) return;
+  ui.view = 'jadwal';
+  renderSemua();
+  bukaFormJam();
+});
+$('j-hari').addEventListener('click', e => {
+  const b = e.target.closest('[data-h]');
+  if (!b) return;
+  const on = !b.classList.contains('on');
+  b.classList.toggle('on', on);
+  b.setAttribute('aria-pressed', on);
+});
+$('j-sesi').addEventListener('click', e => {
+  const b = e.target.closest('.hapus-sesi');
+  if (!b) return;
+  b.closest('.baris-sesi').remove();
+  nomoriSesi();
+});
+$('j-tambah').addEventListener('click', () => {
+  const baris = [...$('j-sesi').children];
+  const akhir = baris.length ? baris[baris.length - 1].querySelector('.j-selesai').value || '08:00' : '07:30';
+  const mulai = tambahMenit(akhir, 30);
+  $('j-sesi').appendChild(barisSesi({ mulai, selesai: tambahMenit(mulai, 90) }, ''));
+  nomoriSesi();
+});
+$('j-awal').addEventListener('click', () => {
+  // Kembali ke jam bawaan, tapi isi jadwal tetap di sesi yang sama (sesi 1 tetap sesi 1, dst.)
+  const n = SESI_AWAL.length;
+  isiFormJam(SESI_AWAL, HARI_AWAL, false);
+  [...$('j-sesi').children].forEach((b, i) => { if (i < data.sesi.length && i < n) b.dataset.asal = i; });
+});
+$('j-batal').addEventListener('click', () => $('dlg-jam').close());
+
+$('form-jam').addEventListener('submit', e => {
+  e.preventDefault();
+  const salah = teks => { $('j-error').textContent = teks; $('j-error').hidden = false; };
+  const baris = [...$('j-sesi').children].map(b => ({
+    mulai: b.querySelector('.j-mulai').value,
+    selesai: b.querySelector('.j-selesai').value,
+    asal: b.dataset.asal === '' ? null : Number(b.dataset.asal),
+  }));
+  const hari = [...$('j-hari').querySelectorAll('.on')].map(b => Number(b.dataset.h));
+
+  if (!hari.length) return salah('Pilih minimal satu hari kuliah.');
+  if (!baris.length) return salah('Tambahkan minimal satu sesi.');
+  for (const [i, s] of baris.entries()) {
+    if (!POLA_JAM.test(s.mulai) || !POLA_JAM.test(s.selesai)) return salah(`Jam sesi ${i + 1} belum lengkap.`);
+    if (s.mulai >= s.selesai) return salah(`Sesi ${i + 1}: jam selesai harus setelah jam mulai.`);
+  }
+  baris.sort((x, y) => x.mulai.localeCompare(y.mulai));
+  for (let i = 1; i < baris.length; i++) {
+    if (baris[i].mulai < baris[i - 1].selesai) return salah(`Jam ${jam(baris[i - 1].mulai)}–${jam(baris[i - 1].selesai)} dan ${jam(baris[i].mulai)}–${jam(baris[i].selesai)} bertabrakan.`);
+  }
+
+  // Sesi lama yang dihapus tapi masih berisi mata kuliah -> tanya dulu
+  const dipakai = new Set(baris.map(s => s.asal).filter(x => x !== null));
+  let hilang = 0;
+  for (let h = 0; h <= 6; h++) data.jadwal[h].forEach((c, i) => { if (c && !dipakai.has(i)) hilang++; });
+  if (hilang && !confirm(`${hilang} kotak jadwal ada di sesi yang dihapus dan isinya akan hilang. Lanjutkan?`)) return;
+
+  const jadwalBaru = {};
+  for (let h = 0; h <= 6; h++) jadwalBaru[h] = baris.map(s => (s.asal !== null ? data.jadwal[h][s.asal] || null : null));
+  data.sesi = baris.map(s => ({ mulai: s.mulai, selesai: s.selesai }));
+  data.hari = URUT_HARI.filter(h => hari.includes(h));
+  data.jadwal = jadwalBaru;
+  hitungSesi();
+  simpan();
+  $('dlg-jam').close();
+  renderSemua();
+});
+
 /* =========================================================
    10. BACKUP & PULIHKAN
    ========================================================= */
@@ -702,6 +858,7 @@ $('file-pulihkan').addEventListener('change', async e => {
     const nUl = Array.isArray(isi.ulangan) ? isi.ulangan.length : 0;
     if (!confirm(`Ganti semua data sekarang dengan isi backup ini (${isi.tugas.length} tugas, ${nUl} ulangan)?`)) return;
     data = rapikan(isi);
+    hitungSesi();
     simpan();
     ui.filter = '';
     renderSemua();
@@ -733,5 +890,5 @@ document.querySelectorAll('.ombak').forEach(p => p.setAttribute('d', pathOmbak(N
 renderSemua();
 // Perbarui status "sekarang" & label deadline tiap 30 detik (kecuali sedang mengisi form)
 setInterval(() => {
-  if (!$('dlg-tugas').open && !$('dlg-sesi').open && !$('dlg-ulangan').open) renderSemua();
+  if (!$('dlg-tugas').open && !$('dlg-sesi').open && !$('dlg-ulangan').open && !$('dlg-jam').open) renderSemua();
 }, 30000);

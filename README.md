@@ -9,7 +9,7 @@ Aplikasi web untuk mengatur tugas, ulangan, dan jadwal belajar mingguan. Aplikas
 - **Status sekarang**: menampilkan sesi yang sedang berlangsung, sisa waktunya, jam istirahat, dan sesi berikutnya.
 - **Tugas**: catat tugas beserta deadline-nya. Tugas yang mepet atau lewat deadline diberi warna berbeda.
 - **Ulangan**: daftar ulangan yang akan datang, dengan hitung mundur harinya.
-- **Jadwal**: jadwal mingguan dengan 4 sesi per hari, termasuk sesi dosen dan self learning.
+- **Jadwal**: jadwal mingguan yang jam sesi dan hari kuliahnya bisa kamu atur sendiri, termasuk sesi dosen dan self learning.
 - **Pengingat** untuk tugas dan ulangan yang sudah dekat.
 - **Backup & pulihkan** data lewat file.
 - **Animasi ombak** yang lembut di tampilannya.

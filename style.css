@@ -55,8 +55,9 @@ button:focus-visible, .link:focus-visible, .f:focus-visible { outline: 2px solid
 .aksi-now { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 .aksi-now:empty { display: none; }
 .mini-btn { background: rgba(243, 236, 220, .08); color: var(--krem); border-color: rgba(243, 236, 220, .3); font-size: 13px; font-weight: 600; padding: 7px 14px; }
+.mini-btn.utama { background: var(--krem); color: var(--hijau); border-color: var(--krem); font-weight: 700; font-size: 14px; padding: 9px 18px; }
 
-.strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 24px; }
+.strip { display: grid; grid-template-columns: repeat(var(--n, 4), minmax(0, 1fr)); gap: 8px; margin-top: 24px; }
 .strip:empty { display: none; }
 .strip-item { padding: 10px 12px; border-radius: 12px; background: rgba(243, 236, 220, .07); border: 1px solid rgba(243, 236, 220, .12); font-size: 12px; min-width: 0; }
 .strip-item span { opacity: .6; }
@@ -186,6 +187,31 @@ dialog h3 { font-size: 20px; font-weight: 800; margin-bottom: 16px; letter-spaci
 .s-tugas { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px; margin-bottom: 12px; border-radius: 12px; background: var(--pasir-2); font-size: 13.5px; }
 .s-tugas span { flex: 1; min-width: 140px; }
 .s-tugas .btn-dua { padding: 6px 12px; font-size: 13px; }
+
+/* Atur jam & hari */
+.pilih-hari { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.chip-hari { flex: 1; min-width: 48px; padding: 8px 0; border-radius: 999px; border: 1.5px solid var(--garis); background: transparent; color: var(--hijau); font-size: 13px; font-weight: 700; }
+.chip-hari.on { background: var(--hijau); border-color: var(--hijau); color: var(--krem); }
+.chip-hari:hover { border-color: var(--ungu); background: var(--ungu); color: #fff; }
+.daftar-sesi { display: grid; gap: 8px; margin: 8px 0 10px; }
+.baris-sesi { display: grid; grid-template-columns: 58px minmax(0, 1fr) auto minmax(0, 1fr) 32px; align-items: center; gap: 8px; }
+.baris-sesi .f { margin-top: 0; padding: 9px 10px; font-size: 14.5px; min-width: 0; width: 100%; }
+.no-sesi { font-size: 13px; font-weight: 700; }
+.sampai { color: var(--redup); }
+.hapus-sesi { width: 32px; height: 32px; border-radius: 999px; border: 1.5px solid var(--garis); background: transparent; color: var(--redup); font-size: 18px; line-height: 1; }
+.hapus-sesi:hover { background: var(--merah); border-color: var(--merah); color: #fff; }
+.hapus-sesi[hidden] { display: block; visibility: hidden; }
+.btn-kecil { padding: 7px 14px; font-size: 13px; }
+#dlg-jam { width: min(500px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; }
+@media (max-width: 640px) {
+  #dlg-jam { padding: 22px 18px; }
+  .chip-hari { min-width: 0; font-size: 12.5px; }
+  .baris-sesi { grid-template-columns: 46px minmax(0, 1fr) auto minmax(0, 1fr) 28px; gap: 5px; }
+  .baris-sesi .f { padding: 8px 6px; font-size: 13px; }
+  .no-sesi { font-size: 12.5px; }
+  .hapus-sesi { width: 28px; height: 28px; font-size: 16px; }
+  .baris-sesi .f::-webkit-calendar-picker-indicator { display: none; }
+}
 
 /* ===== LAYAR KECIL ===== */
 @media (max-width: 640px) {

@@ -106,8 +106,9 @@
     <div class="kepala">
       <div>
         <h2>Jadwal kuliah</h2>
-        <p class="ringkas">Klik kotak sesi untuk mengisi atau mengubahnya. Cukup sekali di awal semester.</p>
+        <p class="ringkas">Atur dulu jam &amp; hari kuliahmu, lalu klik kotak sesi untuk mengisinya. Cukup sekali di awal semester.</p>
       </div>
+      <button type="button" class="btn-dua" data-atur-jadwal>Atur jam &amp; hari</button>
     </div>
     <div class="grid-wrap"><div class="grid" id="grid-jadwal"></div></div>
   </section>
@@ -229,6 +230,26 @@
       <button type="button" class="link" id="s-kosongkan">Kosongkan sesi</button>
       <span class="spasi"></span>
       <button type="button" class="btn-dua" id="s-batal">Batal</button>
+      <button type="submit" class="btn">Simpan</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-jam">
+  <form id="form-jam" autocomplete="off" novalidate>
+    <h3>Atur jam &amp; hari kuliah</h3>
+    <div class="field">Hari kuliah
+      <div class="pilih-hari" id="j-hari"></div>
+    </div>
+    <div class="field">Jam tiap sesi <span class="opsional">(celah di antara sesi otomatis jadi istirahat)</span>
+      <div class="daftar-sesi" id="j-sesi"></div>
+      <button type="button" class="btn-dua btn-kecil" id="j-tambah">+ Tambah sesi</button>
+    </div>
+    <p class="error" id="j-error" hidden></p>
+    <div class="aksi-dialog">
+      <button type="button" class="link" id="j-awal">Pakai jam bawaan</button>
+      <span class="spasi"></span>
+      <button type="button" class="btn-dua" id="j-batal">Batal</button>
       <button type="submit" class="btn">Simpan</button>
     </div>
   </form>
